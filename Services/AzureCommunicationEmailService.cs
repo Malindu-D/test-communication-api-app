@@ -13,14 +13,40 @@ public class AzureCommunicationEmailService : IEmailService
         IConfiguration configuration,
         ILogger<AzureCommunicationEmailService> logger)
     {
-        var connectionString = configuration["AzureCommunicationService:ConnectionString"]
-            ?? throw new InvalidOperationException("Azure Communication Service connection string is not configured");
-        
-        _senderEmail = configuration["AzureCommunicationService:SenderEmail"]
-            ?? throw new InvalidOperationException("Sender email is not configured");
-
-        _emailClient = new EmailClient(connectionString);
         _logger = logger;
+        
+        var connectionString = configuration["AzureCommunicationService:ConnectionString"];
+        var senderEmail = configuration["AzureCommunicationService:SenderEmail"];
+        
+        _logger.LogInformation("=== Azure Communication Service Configuration ===");
+        _logger.LogInformation("ConnectionString exists: {HasConnectionString}", !string.IsNullOrEmpty(connectionString));
+        _logger.LogInformation("SenderEmail exists: {HasSenderEmail}", !string.IsNullOrEmpty(senderEmail));
+        _logger.LogInformation("SenderEmail value: {SenderEmail}", senderEmail ?? "NULL");
+        
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            _logger.LogError("Azure Communication Service connection string is not configured!");
+            throw new InvalidOperationException("Azure Communication Service connection string is not configured. Please set AzureCommunicationService__ConnectionString in environment variables.");
+        }
+        
+        if (string.IsNullOrEmpty(senderEmail))
+        {
+            _logger.LogError("Sender email is not configured!");
+            throw new InvalidOperationException("Sender email is not configured. Please set AzureCommunicationService__SenderEmail in environment variables.");
+        }
+        
+        _senderEmail = senderEmail;
+
+        try
+        {
+            _emailClient = new EmailClient(connectionString);
+            _logger.LogInformation("EmailClient created successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create EmailClient. Check if connection string is valid.");
+            throw;
+        }
     }
 
     public async Task<bool> SendEmailAsync(string recipientEmail)

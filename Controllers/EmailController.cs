@@ -65,10 +65,16 @@ public class EmailController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing email request");
+            
+            // Return more detailed error message
+            var errorMessage = ex.InnerException != null 
+                ? $"{ex.Message} Inner: {ex.InnerException.Message}" 
+                : ex.Message;
+            
             return StatusCode(500, new EmailResponse
             {
                 Success = false,
-                Message = "An error occurred while processing your request"
+                Message = $"Error: {errorMessage}"
             });
         }
     }
